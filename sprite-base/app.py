@@ -13,8 +13,7 @@ class Sprite(db.Model):
     def __repr__(self):
         return f'<Sprite {self.name}>'
 
-@app.before_first_request
-def create_tables():
+with app.app_context():
     db.create_all()
 
 @app.route('/sprite/<string:name>', methods=['POST'])

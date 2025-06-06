@@ -1,3 +1,2 @@
 Flask
-Flask-SQLAlchemy
-pysqlite3 
+Flask-SQLAlchemy 
