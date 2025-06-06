@@ -2,7 +2,7 @@ let gridSize = 8;
 let paletteSize = 16;
 let cellSize = 32;
 let encoder;
-let uiDiv, rawDiv, compressedDiv, colorPicker;
+let uiDiv, rawDiv, compressedDiv, colorPicker, nameInput, saveButton;
 let grid, palette;
 
 function preload() {
@@ -23,6 +23,12 @@ function setup() {
     palette.setColor(palette.currentColorIndex, color(colorPicker.value()));
     redraw();
   });
+
+  nameInput = createInput('').parent(uiDiv);
+  nameInput.attribute('placeholder', 'Sprite Name');
+
+  saveButton = createButton('Save Sprite').parent(uiDiv);
+  saveButton.mousePressed(saveSprite);
 
   noLoop();
   updateDisplay();
@@ -67,4 +73,31 @@ function updateDisplay() {
     `<br><b>Compression Ratio:</b> ${(encoded.length / 64 * 100).toFixed(1)}%`
   );
   redraw();
+}
+
+function saveSprite() {
+  const spriteName = nameInput.value();
+  if (!spriteName) {
+    alert('Please enter a name for the sprite.');
+    return;
+  }
+
+  const encodedData = encoder.encode(grid.pixels);
+
+  fetch(`http://localhost:5000/sprite/${spriteName}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/octet-stream',
+    },
+    body: encodedData,
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log(data);
+    alert(data.message || data.error);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Failed to save sprite.');
+  });
 }
