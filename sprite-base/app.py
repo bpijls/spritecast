@@ -1,0 +1,42 @@
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sprites.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+class Sprite(db.Model):
+    name = db.Column(db.String(80), primary_key=True, unique=True, nullable=False)
+    data = db.Column(db.LargeBinary, nullable=False)
+
+    def __repr__(self):
+        return f'<Sprite {self.name}>'
+
+@app.before_first_request
+def create_tables():
+    db.create_all()
+
+@app.route('/sprite/<string:name>', methods=['POST'])
+def add_sprite(name):
+    if Sprite.query.get(name):
+        return jsonify({'error': 'Sprite with this name already exists'}), 409
+
+    data = request.get_data()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    new_sprite = Sprite(name=name, data=data)
+    db.session.add(new_sprite)
+    db.session.commit()
+    return jsonify({'message': f'Sprite {name} created successfully'}), 201
+
+@app.route('/sprite/<string:name>', methods=['GET'])
+def get_sprite(name):
+    sprite = Sprite.query.get(name)
+    if sprite:
+        return sprite.data, 200, {'Content-Type': 'application/octet-stream'}
+    return jsonify({'error': 'Sprite not found'}), 404
+
+if __name__ == '__main__':
+    app.run(debug=True) 
