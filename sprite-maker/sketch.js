@@ -6,7 +6,6 @@ let uiDiv, rawDiv, compressedDiv, colorPicker;
 let grid, palette;
 
 function preload() {
-  loadStyle("style.css");
 }
 
 function setup() {
