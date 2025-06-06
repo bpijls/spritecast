@@ -5,8 +5,10 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./app.py:/app/app.py
-      - ./instance:/app/instance
+      - .:/app
+      - sprite-db:/app/instance
+    environment:
+      - FLASK_DEBUG=1
 
 volumes:
   sprite-db: 

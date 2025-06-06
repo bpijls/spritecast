@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -15,6 +15,10 @@ class Sprite(db.Model):
 
 with app.app_context():
     db.create_all()
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 @app.route('/sprite/<string:name>', methods=['POST'])
 def add_sprite(name):
@@ -36,6 +40,12 @@ def get_sprite(name):
     if sprite:
         return sprite.data, 200, {'Content-Type': 'application/octet-stream'}
     return jsonify({'error': 'Sprite not found'}), 404
+
+@app.route('/sprites', methods=['GET'])
+def list_sprites():
+    sprites = Sprite.query.all()
+    sprite_names = [sprite.name for sprite in sprites]
+    return jsonify(sprite_names)
 
 if __name__ == '__main__':
     app.run(debug=True) 
