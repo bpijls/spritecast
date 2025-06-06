@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app.py:/app/app.py
+      - ./instance:/app/instance
+
+volumes:
+  sprite-db: 
