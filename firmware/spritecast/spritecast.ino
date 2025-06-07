@@ -41,7 +41,7 @@ void setup() {
 
    // We start by connecting to a WiFi network
   WiFiMulti.addAP(ssid, password);
-
+WiFi.setTxPower(WIFI_POWER_8_5dBm);
   Serial.println();
   Serial.println();
   Serial.print("Waiting for WiFi... ");
