@@ -58,7 +58,7 @@ void setup() {
 
   strip.begin();
   strip.show(); 
-  strip.setBrightness(50); 
+  strip.setBrightness(10); 
 }
 
 void decodeAndDraw(const uint8_t* data, int length) {
