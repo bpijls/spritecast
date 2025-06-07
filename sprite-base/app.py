@@ -41,11 +41,21 @@ def get_sprite(name):
         return sprite.data, 200, {'Content-Type': 'application/octet-stream'}
     return jsonify({'error': 'Sprite not found'}), 404
 
-@app.route('/sprites', methods=['GET'])
-def list_sprites():
-    sprites = Sprite.query.all()
-    sprite_names = [sprite.name for sprite in sprites]
-    return jsonify(sprite_names)
+@app.route('/sprites', methods=['GET', 'DELETE'])
+def handle_sprites():
+    if request.method == 'GET':
+        sprites = Sprite.query.all()
+        sprite_names = [sprite.name for sprite in sprites]
+        return jsonify(sprite_names)
+    
+    if request.method == 'DELETE':
+        try:
+            num_rows_deleted = db.session.query(Sprite).delete()
+            db.session.commit()
+            return jsonify({'message': f'{num_rows_deleted} sprites deleted.'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True) 
