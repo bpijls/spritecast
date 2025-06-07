@@ -62,14 +62,12 @@ function updateDisplay() {
     '<b>Raw:</b> ' + grid.pixels.map(n => n.toString(16).padStart(2, '0')).join(' ')
   );
 
-  const encoded = encoder.encode(grid.pixels);
-  const paletteHex = Array.from(encoded.slice(1, 1 + Math.ceil(encoded[0] / 2)))
-    .map(b => b.toString(16).padStart(2, '0')).join(' ');
-  const dataHex = Array.from(encoded.slice(1 + Math.ceil(encoded[0] / 2)))
+  const encoded = encoder.encode(grid.pixels, palette.colors);
+  const dataHex = Array.from(encoded)
     .map(b => b.toString(16).padStart(2, '0')).join(' ');
 
   compressedDiv.html(
-    `<b>Compressed:</b><br>Palette: ${paletteHex}<br>Data: ${dataHex}` +
+    `<b>Compressed:</b><br>Data: ${dataHex}` +
     `<br><b>Compression Ratio:</b> ${(encoded.length / 64 * 100).toFixed(1)}%`
   );
   redraw();
@@ -82,7 +80,7 @@ function saveSprite() {
     return;
   }
 
-  const encodedData = encoder.encode(grid.pixels);
+  const encodedData = encoder.encode(grid.pixels, palette.colors);
 
   fetch(`http://localhost:5000/sprite/${spriteName}`, {
     method: 'POST',
