@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite Decoder Test</title>
+    <script src="{{ url_for('static', filename='libraries/p5.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='image-encoder.js') }}"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; }
+        #sprite-list { margin-right: 20px; }
+        a { cursor: pointer; color: blue; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div id="sprite-list">
+        <h2>Sprites</h2>
+        <ul id="links"></ul>
+    </div>
+    <div id="canvas-container"></div>
+    <div id="hex-container">
+        <h2>Encoded Data</h2>
+        <pre><code id="hex-output"></code></pre>
+    </div>
+
+    <script>
+        const encoder = new ImageEncoder();
+        let spriteData = null;
+
+        function setup() {
+            const canvas = createCanvas(256, 256);
+            canvas.parent('canvas-container');
+            noLoop();
+            background(220);
+
+            fetch('/sprites')
+                .then(response => response.json())
+                .then(names => {
+                    const list = document.getElementById('links');
+                    names.forEach(name => {
+                        const li = document.createElement('li');
+                        const a = document.createElement('a');
+                        a.textContent = name;
+                        a.onclick = () => loadSprite(name);
+                        li.appendChild(a);
+                        list.appendChild(li);
+                    });
+                });
+        }
+
+        function draw() {
+            if (spriteData) {
+                background(220);
+                const { pixels, palette } = spriteData;
+                const cellSize = width / 8;
+                for (let i = 0; i < pixels.length; i++) {
+                    const x = (i % 8) * cellSize;
+                    const y = Math.floor(i / 8) * cellSize;
+                    const colorIndex = pixels[i];
+                    fill(palette[colorIndex]);
+                    stroke(0);
+                    rect(x, y, cellSize, cellSize);
+                }
+            }
+        }
+
+        function loadSprite(name) {
+            fetch(`/sprite/${name}`)
+                .then(response => response.arrayBuffer())
+                .then(buffer => {
+                    const bytes = new Uint8Array(buffer);
+                    spriteData = encoder.decode(bytes);
+                    
+                    const hexString = Array.from(bytes)
+                        .map(b => '0x' + b.toString(16).padStart(2, '0'))
+                        .join(', ');
+                    document.getElementById('hex-output').textContent = `{${hexString}}`;
+                    
+                    redraw();
+                });
+        }
+    </script>
+</body>
+</html> 

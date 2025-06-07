@@ -20,6 +20,10 @@ with app.app_context():
 def index():
     return render_template('index.html')
 
+@app.route('/test_decoder')
+def test_decoder_page():
+    return render_template('test_decoder.html')
+
 @app.route('/sprite/<string:name>', methods=['POST'])
 def add_sprite(name):
     if Sprite.query.get(name):
