@@ -24,8 +24,8 @@ Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 // Declare our PixelGrid object
 PixelGrid pixelGrid(GRID_WIDTH, GRID_HEIGHT, &strip);
 
-uint8_t doggo[] = {0x01,0x25,0x40,0x41,0x40,0x41,0x40,0x12,0x11,0x12,0x11,0x32,0x51,0x32,0x51,0x32,0x51,0x52,0x31,0x13,0x21,0x13,41};
-
+uint8_t image[] = {0x5a, 0x52, 0xfa, 0x60, 0x00, 0xff, 0xf4, 0x67, 0x80, 0x71, 0x10, 0x11, 0x12, 0x13, 0x11, 0x12, 0x13, 0x11, 0x10, 0x11, 0x23, 0x11, 0x23, 0x11, 0x10, 0xa1, 0x22, 0x61, 0x22, 0x31, 0x10, 0x14, 0x61, 0x14}
+;
 
 void setup() {
   Serial.begin(115200);
@@ -49,84 +49,83 @@ void setup() {
   strip.show(); 
   strip.setBrightness(50); 
 
-  // Initial palette (can be overwritten by server)
-  pixelGrid.setPaletteColor(0, strip.Color(255, 0, 0));    // Red
-  pixelGrid.setPaletteColor(1, strip.Color(255, 127, 0));  // Orange
-
-  // ... (rest of default palette setup from previous step)
-  for (int i = 2; i < PALETTE_SIZE; ++i) { // Fill rest with black initially
-    pixelGrid.setPaletteColor(i, strip.Color(0,0,0)); 
-  }
-  
-    decodeAndDraw(doggo, sizeof(doggo));
+  decodeAndDraw(image, sizeof(image));
 }
 
 void decodeAndDraw(const uint8_t* data, int length) {
-  if (length < 2) {
-    Serial.println("Invalid data: too short");
+  if (length == 0) {
+    Serial.println("Decoder Error: No data.");
     return;
   }
 
-  uint8_t paletteSize = data[0];
+  // Unpack all bytes into a stream of nibbles
+  const int numNibbles = length * 2;
+  uint8_t nibbles[numNibbles];
+  for (int i = 0; i < length; ++i) {
+    nibbles[i * 2]     = (data[i] >> 4) & 0x0F;
+    nibbles[i * 2 + 1] = data[i] & 0x0F;
+  }
+
+  int nibbleIndex = 0;
+
+  // First nibble is the number of colors in the palette
+  uint8_t paletteSize = nibbles[nibbleIndex++];
   if (paletteSize > PALETTE_SIZE) {
-      Serial.println("Invalid data: palette size too large");
-      return;
-  }
-  uint8_t imagePalette[PALETTE_SIZE];
-  
-  int paletteByteCount = (paletteSize + 1) / 2;
-  int paletteEndIndex = 1 + paletteByteCount;
-
-  if (length < paletteEndIndex) {
-    Serial.println("Invalid data: not enough data for palette");
+    Serial.println("Decoder Error: Palette size exceeds max.");
     return;
   }
-
-  // Unpack the custom palette
-  for (int i = 0; i < paletteByteCount; ++i) {
-    uint8_t byte = data[1 + i];
-    int paletteIdx1 = i * 2;
-    int paletteIdx2 = i * 2 + 1;
-
-    if (paletteIdx1 < paletteSize) {
-      imagePalette[paletteIdx1] = (byte >> 4) & 0x0F;
+  
+  // Decode the palette colors (3 nibbles per color: R, G, B)
+  for (int i = 0; i < paletteSize; ++i) {
+    if (nibbleIndex + 2 >= numNibbles) {
+      Serial.println("Decoder Error: Incomplete palette data.");
+      return;
     }
-    if (paletteIdx2 < paletteSize) {
-      imagePalette[paletteIdx2] = byte & 0x0F;
-    }
+    uint8_t r4 = nibbles[nibbleIndex++];
+    uint8_t g4 = nibbles[nibbleIndex++];
+    uint8_t b4 = nibbles[nibbleIndex++];
+    
+    // Scale 4-bit color to 8-bit for NeoPixel
+    uint8_t r8 = (r4 << 4) | r4;
+    uint8_t g8 = (g4 << 4) | g4;
+    uint8_t b8 = (b4 << 4) | b4;
+    
+    pixelGrid.setPaletteColor(i, strip.Color(r8, g8, b8));
   }
 
-  // Decode the RLE data
+  // Decode the RLE pixel data (2 nibbles per run: run_length, color_index)
   int pixelIndex = 0;
-  for (int i = paletteEndIndex; i < length && pixelIndex < LED_COUNT; ++i) {
-    uint8_t byte = data[i];
-    uint8_t run = (byte >> 4) & 0x0F;
-    uint8_t paletteIndexInImage = byte & 0x0F;
+  while (nibbleIndex + 1 < numNibbles && pixelIndex < LED_COUNT) {
+    uint8_t run = nibbles[nibbleIndex++];
+    uint8_t colorIndex = nibbles[nibbleIndex++];
 
-    if (run == 0) {
-      run = 16; // The JS encoder bug encodes a run of 16 as 0
-    }
-    
-    if (paletteIndexInImage >= paletteSize) {
-      Serial.println("Invalid data: palette index out of bounds");
+    if (colorIndex >= paletteSize) {
+      Serial.println("Decoder Error: Invalid color index.");
       continue;
     }
 
-    uint8_t finalPaletteIndex = imagePalette[paletteIndexInImage];
-
-    for (int j = 0; j < run && pixelIndex < LED_COUNT; ++j) {
+    for (int i = 0; i < run && pixelIndex < LED_COUNT; ++i) {
       uint8_t y = pixelIndex / GRID_WIDTH;
       uint8_t x = pixelIndex % GRID_WIDTH;
-      pixelGrid.setPixel(x, y, finalPaletteIndex);
+      pixelGrid.setPixel(x, y, colorIndex);
       pixelIndex++;
     }
   }
   
-  pixelGrid.draw(); // Draw the decoded image
+  pixelGrid.draw();
 }
 
 void loop() {
-  pixelGrid.draw(); // Keep redrawing the current grid state
-  delay(1000); 
-
+  Example of how you might fetch and draw data in the future
+  http.begin(client, server_url);
+  int httpCode = http.GET();
+  if (httpCode == HTTP_CODE_OK) {
+    int len = http.getSize();
+    uint8_t buff[len];
+    http.getStream().readBytes(buff, len);
+    decodeAndDraw(buff, len);
+  }
+  http.end();
+  
+  delay(5000); // Check for a new image every 5 seconds
 }

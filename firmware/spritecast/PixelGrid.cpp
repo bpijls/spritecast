@@ -55,16 +55,13 @@ void PixelGrid::fillGrid(uint8_t paletteIndex) {
 void PixelGrid::draw() {
     for (uint8_t y = 0; y < height; ++y) {
         for (uint8_t x = 0; x < width; ++x) {
-            int pixelIndex;
-            // Assuming serpentine layout, adjust if your wiring is different.
-            if (y % 2 == 0) { // Even rows, left to right
-                pixelIndex = y * width + x;
-            } else { // Odd rows, right to left (serpentine)
-                pixelIndex = y * width + (width - 1 - x);
-            }
+            uint8_t mappedX = width-1 - x;
+            uint8_t mappedY = (height - 1 - y); // Flip Y-axis to correct upside-down image
+
+            int pixelIndex = mappedY * width + mappedX;
             
             if (pixelIndex < strip_obj->numPixels()) {
-                uint8_t paletteIndex = grid_data[y * width + x];
+                uint8_t paletteIndex = getPixel(x, y); // Use original x, y for data lookup
                 strip_obj->setPixelColor(pixelIndex, palette[paletteIndex]);
             }
         }
