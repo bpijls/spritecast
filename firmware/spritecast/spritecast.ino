@@ -6,28 +6,16 @@
 #include <WiFiMulti.h>
 
 #include <HTTPClient.h>
+#include <Preferences.h>
 // #include <WiFiManager.h> // WiFiManager is no longer used
 
 // --- WiFi Credentials ---
-// Credentials are loaded from config.h.
-// Create config.h from config.h.example and enter your details there.
-const char* ssid = WIFI_SSID;
-const char* password = WIFI_PASSWORD;
+// Credentials are loaded from NVS. Hold both buttons on startup to enter config mode.
+String ssid;
+String password;
 // -------------------------
 
-// Which pin on the Arduino is connected to the NeoPixels?
-#define LED_PIN    4
-
-// How many NeoPixels are attached to the Arduino?
-#define LED_COUNT 64
-
-// Define the size of the grid (n x n)
-#define GRID_WIDTH 8 
-#define GRID_HEIGHT 8 
-
-// Server details
-const char* dataServerUrl = "http://192.168.2.117:5000/sprite/random"; 
-#define MAX_SPRITE_SIZE 256
+Preferences preferences;
 
 // Declare our NeoPixel strip object:
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
@@ -35,32 +23,94 @@ Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 PixelGrid pixelGrid(GRID_WIDTH, GRID_HEIGHT, &strip);
 WiFiMulti WiFiMulti;
 
+void enterConfigMode() {
+  Serial.println("Entering configuration mode.");
+
+  // Simple pixel animation to show config mode is active.
+  pixelGrid.fillGrid(0);
+  for (int i=0; i < GRID_WIDTH; i++) {
+    pixelGrid.setPixel(i, 0, 4); // White color from default palette
+    pixelGrid.draw();
+    delay(50);
+  }
+
+  Serial.println("Please enter WiFi SSID:");
+  while (!Serial.available()) {
+    delay(100);
+  }
+  String newSsid = Serial.readStringUntil('\n');
+  newSsid.trim();
+  Serial.print("SSID set to: ");
+  Serial.println(newSsid);
+
+  Serial.println("Please enter WiFi Password:");
+  while (!Serial.available()) {
+    delay(100);
+  }
+  String newPassword = Serial.readStringUntil('\n');
+  newPassword.trim();
+  Serial.println("Password set."); // Don't print password to serial
+
+  preferences.begin(PREFERENCES_NAMESPACE, false);
+  preferences.putString(SSID_KEY, newSsid);
+  preferences.putString(PASSWORD_KEY, newPassword);
+  preferences.end();
+
+  Serial.println("Credentials saved. Restarting in 3 seconds...");
+  delay(3000);
+  ESP.restart();
+}
+
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(SERIAL_BAUD_RATE);
   delay(10); 
   Serial.println("\nStarting up...");
 
+  strip.begin();
+  strip.show(); 
+  strip.setBrightness(BRIGHTNESS); 
+
+  pinMode(BUTTON_1_PIN, INPUT_PULLUP);
+  pinMode(BUTTON_2_PIN, INPUT_PULLUP);
+
+  delay(100); // Small delay for buttons to settle
+
+  if (digitalRead(BUTTON_1_PIN) == LOW && digitalRead(BUTTON_2_PIN) == LOW) {
+    enterConfigMode();
+  }
+  
+  preferences.begin(PREFERENCES_NAMESPACE, true); // read-only
+  ssid = preferences.getString(SSID_KEY, "");
+  password = preferences.getString(PASSWORD_KEY, "");
+  preferences.end();
+
+  if (ssid.length() == 0) {
+    Serial.println("No WiFi credentials found.");
+    enterConfigMode();
+  }
+
 
    // We start by connecting to a WiFi network
-  WiFiMulti.addAP(ssid, password);
-WiFi.setTxPower(WIFI_POWER_8_5dBm);
+  WiFiMulti.addAP(ssid.c_str(), password.c_str());
+  WiFi.setTxPower(WIFI_TX_POWER);
   Serial.println();
   Serial.println();
   Serial.print("Waiting for WiFi... ");
 
+  unsigned long startTime = millis();
   while (WiFiMulti.run() != WL_CONNECTED) {
     Serial.print(".");
     delay(500);
+    if (millis() - startTime > 30000) { // 30 second timeout
+        Serial.println("\nFailed to connect to WiFi.");
+        enterConfigMode();
+    }
   }
 
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
-
-  strip.begin();
-  strip.show(); 
-  strip.setBrightness(10); 
 }
 
 void decodeAndDraw(const uint8_t* data, int length) {
@@ -130,7 +180,7 @@ void loop() {
   HTTPClient http;
 
   Serial.print("[HTTP] begin...\n");
-  http.begin(dataServerUrl); 
+  http.begin(DATA_SERVER_URL); 
 
   Serial.print("[HTTP] GET...\n");
   int httpCode = http.GET();
@@ -162,5 +212,5 @@ void loop() {
   http.end();
 
   Serial.println("Waiting 5 seconds before next request...");
-  delay(5000); 
+  delay(REQUEST_DELAY); 
 }

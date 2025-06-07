@@ -3,8 +3,7 @@
 
 #include <Adafruit_NeoPixel.h>
 #include <stdint.h>
-
-#define PALETTE_SIZE 16
+#include "config.h"
 
 class PixelGrid {
 public:
