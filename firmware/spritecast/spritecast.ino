@@ -1,5 +1,6 @@
 #include <Adafruit_NeoPixel.h>
 #include "PixelGrid.h"
+#include "config.h"
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -8,9 +9,10 @@
 // #include <WiFiManager.h> // WiFiManager is no longer used
 
 // --- WiFi Credentials ---
-// Replace with your network details!
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD" ;
+// Credentials are loaded from config.h.
+// Create config.h from config.h.example and enter your details there.
+const char* ssid = WIFI_SSID;
+const char* password = WIFI_PASSWORD;
 // -------------------------
 
 // Which pin on the Arduino is connected to the NeoPixels?

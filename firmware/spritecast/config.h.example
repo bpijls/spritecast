@@ -1,0 +1,7 @@
+#pragma once
+
+// --- WiFi Credentials ---
+// Replace with your network details and rename this file to config.h
+#define WIFI_SSID "YOUR_WIFI_SSID"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+// ------------------------- 
