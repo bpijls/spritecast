@@ -2,9 +2,16 @@
 #include "PixelGrid.h"
 
 #include <WiFi.h>
-#include <HTTPClient.h>
-#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
+#include <WiFiMulti.h>
 
+#include <HTTPClient.h>
+// #include <WiFiManager.h> // WiFiManager is no longer used
+
+// --- WiFi Credentials ---
+// Replace with your network details!
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD" ;
+// -------------------------
 
 // Which pin on the Arduino is connected to the NeoPixels?
 #define LED_PIN    4
@@ -16,40 +23,42 @@
 #define GRID_WIDTH 8 
 #define GRID_HEIGHT 8 
 
-// Server details (replace with your actual server URL)
-const char* dataServerUrl = "http://your-server.com/getPixelData"; // Placeholder
+// Server details
+const char* dataServerUrl = "http://192.168.2.117:5000/sprite/random"; 
+#define MAX_SPRITE_SIZE 256
 
 // Declare our NeoPixel strip object:
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 // Declare our PixelGrid object
 PixelGrid pixelGrid(GRID_WIDTH, GRID_HEIGHT, &strip);
-
-uint8_t image[] = {0x5a, 0x52, 0xfa, 0x60, 0x00, 0xff, 0xf4, 0x67, 0x80, 0x71, 0x10, 0x11, 0x12, 0x13, 0x11, 0x12, 0x13, 0x11, 0x10, 0x11, 0x23, 0x11, 0x23, 0x11, 0x10, 0xa1, 0x22, 0x61, 0x22, 0x31, 0x10, 0x14, 0x61, 0x14}
-;
+WiFiMulti WiFiMulti;
 
 void setup() {
   Serial.begin(115200);
   delay(10); 
   Serial.println("\nStarting up...");
 
-  WiFiManager wifiManager;
-  // wifiManager.resetSettings(); // Uncomment to erase stored credentials
-  if (!wifiManager.autoConnect("SpriteCastAP_Config")) {
-    Serial.println("Failed to connect to WiFi and hit timeout");
-    delay(3000);
-    ESP.restart();
-    delay(5000);
+
+   // We start by connecting to a WiFi network
+  WiFiMulti.addAP(ssid, password);
+
+  Serial.println();
+  Serial.println();
+  Serial.print("Waiting for WiFi... ");
+
+  while (WiFiMulti.run() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
   }
 
-  Serial.println("Connected to WiFi!");
-  Serial.print("IP address: ");
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
 
   strip.begin();
   strip.show(); 
   strip.setBrightness(50); 
-
-  decodeAndDraw(image, sizeof(image));
 }
 
 void decodeAndDraw(const uint8_t* data, int length) {
@@ -116,16 +125,40 @@ void decodeAndDraw(const uint8_t* data, int length) {
 }
 
 void loop() {
-  Example of how you might fetch and draw data in the future
-  http.begin(client, server_url);
+  HTTPClient http;
+
+  Serial.print("[HTTP] begin...\n");
+  http.begin(dataServerUrl); 
+
+  Serial.print("[HTTP] GET...\n");
   int httpCode = http.GET();
-  if (httpCode == HTTP_CODE_OK) {
-    int len = http.getSize();
-    uint8_t buff[len];
-    http.getStream().readBytes(buff, len);
-    decodeAndDraw(buff, len);
+
+  if (httpCode > 0) {
+    Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+
+    if (httpCode == HTTP_CODE_OK) {
+      int len = http.getSize();
+      Serial.printf("[HTTP] Payload size: %d\n", len);
+
+      if (len > 0 && len <= MAX_SPRITE_SIZE) {
+        uint8_t buff[MAX_SPRITE_SIZE] = {0};
+        WiFiClient * stream = http.getStreamPtr();
+        stream->readBytes(buff, len);
+        
+        Serial.println("[HTTP] Decoding and drawing...");
+        decodeAndDraw(buff, len);
+      } else if (len > MAX_SPRITE_SIZE) {
+        Serial.printf("[HTTP] Error: Payload size %d exceeds max size %d\n", len, MAX_SPRITE_SIZE);
+      } else {
+        Serial.println("[HTTP] Warning: Empty or invalid response from server.");
+      }
+    }
+  } else {
+    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   }
+
   http.end();
-  
-  delay(5000); // Check for a new image every 5 seconds
+
+  Serial.println("Waiting 5 seconds before next request...");
+  delay(5000); 
 }
