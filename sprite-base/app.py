@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.sql.expression import func
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sprites.db'
@@ -60,6 +61,13 @@ def handle_sprites():
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
+
+@app.route('/sprite/random', methods=['GET'])
+def get_random_sprite():
+    sprite = Sprite.query.order_by(func.random()).first()
+    if sprite:
+        return sprite.data, 200, {'Content-Type': 'application/octet-stream'}
+    return jsonify({'error': 'No sprites found in the database'}), 404
 
 if __name__ == '__main__':
     app.run(debug=True) 
