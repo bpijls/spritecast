@@ -82,7 +82,7 @@ function saveSprite() {
 
   const encodedData = encoder.encode(grid.pixels, palette.colors);
 
-  fetch(`http://localhost:5000/sprite/${spriteName}`, {
+  fetch(`/sprite/${spriteName}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/octet-stream',
