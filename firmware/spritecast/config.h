@@ -1,9 +1,6 @@
-#pragma once
+#ifndef CONFIG_H
+#define CONFIG_H
 
-// --- WiFi Credentials ---
-// Replace with your network details and rename this file to config.h
-// #define WIFI_SSID "YOUR_WIFI_SSID"
-// #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
 
 // --- Buttons ---
 #define BUTTON_1_PIN 0
@@ -23,12 +20,19 @@
 #define PALETTE_SIZE 16
 
 // --- Network Settings ---
-#define DATA_SERVER_URL "http://192.168.2.117:5001/sprite/random" 
+#define DATA_SERVER_URL "https://spritecast.feib.nl/sprite/random" 
 #define REQUEST_DELAY 5000 // Delay between requests in ms
 #define WIFI_TX_POWER WIFI_POWER_8_5dBm // Set WiFi TX power
+
+// --- Server Security ---
+// You will need to replace this with your server's root CA certificate
+extern const char* root_ca;
 
 // --- Firmware Settings ---
 #define SERIAL_BAUD_RATE 115200
 #define MAX_SPRITE_SIZE 256
 
 // ------------------------- 
+
+#endif // CONFIG_H
+// -----------------
