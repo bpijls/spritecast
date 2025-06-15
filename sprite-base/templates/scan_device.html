@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scan Device - SpriteCast</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+        }
+        #video-container {
+            margin: 20px 0;
+        }
+        #video {
+            max-width: 100%;
+            border: 1px solid #ccc;
+        }
+        .instructions {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Scan Device</h1>
+        
+        <div class="instructions">
+            <h2>Instructions:</h2>
+            <ol>
+                <li>Press and hold both buttons on your SpriteCast device</li>
+                <li>Point your camera at the device's display</li>
+                <li>Wait for the scan to complete</li>
+            </ol>
+        </div>
+
+        <div id="video-container">
+            <video id="video" autoplay playsinline></video>
+        </div>
+
+        <div id="status">Waiting to start scanning...</div>
+    </div>
+
+    <script>
+        // This is a placeholder for the actual scanning implementation
+        // The actual implementation will be added later
+        document.addEventListener('DOMContentLoaded', function() {
+            const video = document.getElementById('video');
+            const status = document.getElementById('status');
+
+            // Request camera access
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                .then(stream => {
+                    video.srcObject = stream;
+                })
+                .catch(err => {
+                    status.textContent = 'Error accessing camera: ' + err.message;
+                });
+        });
+    </script>
+</body>
+</html> 

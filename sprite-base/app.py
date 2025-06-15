@@ -7,6 +7,14 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sprites.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+class Device(db.Model):
+    id = db.Column(db.String(12), primary_key=True)  # 6 bytes as hex string
+    name = db.Column(db.String(80))
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def __repr__(self):
+        return f'<Device {self.id}>'
+
 class Sprite(db.Model):
     name = db.Column(db.String(80), primary_key=True, unique=True, nullable=False)
     data = db.Column(db.LargeBinary, nullable=False)
@@ -24,6 +32,26 @@ def index():
 @app.route('/test_decoder')
 def test_decoder_page():
     return render_template('test_decoder.html')
+
+@app.route('/scan_device')
+def scan_device():
+    return render_template('scan_device.html')
+
+@app.route('/add_device/<string:device_id>', methods=['POST'])
+def add_device(device_id):
+    if len(device_id) != 12:  # 6 bytes as hex string
+        return jsonify({'error': 'Invalid device ID format'}), 400
+        
+    if Device.query.get(device_id):
+        return jsonify({'error': 'Device already registered'}), 409
+
+    name = request.json.get('name', '') if request.is_json else ''
+    
+    new_device = Device(id=device_id, name=name)
+    db.session.add(new_device)
+    db.session.commit()
+    
+    return jsonify({'message': f'Device {device_id} registered successfully'}), 201
 
 @app.route('/sprite/<string:name>', methods=['POST'])
 def add_sprite(name):

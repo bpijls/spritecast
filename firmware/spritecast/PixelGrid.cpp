@@ -68,3 +68,7 @@ void PixelGrid::draw() {
     }
     strip_obj->show();
 } 
+
+void PixelGrid::setBrightness(uint8_t brightness) {
+    strip_obj->setBrightness(brightness);
+}

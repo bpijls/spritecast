@@ -14,6 +14,7 @@
 // --- Display Settings ---
 #define LED_PIN    4
 #define LED_COUNT 64
+#define CONFIG_BRIGHTNESS 255 // Set brightness (0-255)
 #define BRIGHTNESS 10 // Set brightness (0-255)
 #define GRID_WIDTH 8 
 #define GRID_HEIGHT 8 

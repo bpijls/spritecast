@@ -21,6 +21,7 @@ public:
     void setPaletteColor(uint8_t index, uint32_t color);
     void fillGrid(uint8_t paletteIndex);
     void draw();
+    void setBrightness(uint8_t brightness);
 };
 
 #endif // PIXELGRID_H 
